@@ -1,7 +1,7 @@
 import { Puzzle, ShareStyle } from './types';
 import { PUZZLES, VALID, KEY_ROWS } from './data';
 import { dayNumber, stateAt, gridLetters, keyState, complete } from './game';
-import { header, share, replaySvg } from './share';
+import { header, share, replayGif } from './share';
 
 let puzzleNumber: number;
 let puzzle: Puzzle;
@@ -194,10 +194,9 @@ async function exportReplay(): Promise<void> {
   b.disabled = true;
   b.textContent = "Making replay…";
   try {
-    const svgStr = replaySvg(puzzleNumber, won, guesses, answers);
-    const blob = new Blob([svgStr], { type: "image/svg+xml" });
-    const name = "weavle-" + puzzleNumber + "-" + (won ? guesses.length : "x") + "-10.svg";
-    const file = new File([blob], name, { type: "image/svg+xml" });
+    const blob = replayGif(puzzleNumber, won, guesses, answers);
+    const name = "weavle-" + puzzleNumber + "-" + (won ? guesses.length : "x") + "-10.gif";
+    const file = new File([blob], name, { type: "image/gif" });
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
       await navigator.share({ title: "Weavle", text: header(puzzleNumber, won, guesses.length), files: [file] });
     } else {
