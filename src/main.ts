@@ -1,6 +1,6 @@
 import { Puzzle, ShareStyle } from './types';
 import { PUZZLES, VALID, KEY_ROWS } from './data';
-import { dayNumber, stateAt, gridLetters, keyState, complete, score } from './game';
+import { dayNumber, stateAt, gridLetters, keyState, complete } from './game';
 import { header, share, replaySvg } from './share';
 
 let puzzleNumber: number;
