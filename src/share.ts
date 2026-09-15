@@ -41,7 +41,6 @@ export function share(style: ShareStyle, puzzleNumber: number, won: boolean, gue
 }
 
 export function replaySvg(puzzleNumber: number, won: boolean, guesses: string[], answers: string[]): string {
-  const frameCount = guesses.length + 2;
   const frames = [];
   for (let i = -1; i < guesses.length; i++) {
     frames.push(stateAt(i, guesses, answers));
