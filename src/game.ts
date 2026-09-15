@@ -1,5 +1,6 @@
-import { Puzzle, State, Summary } from './types';
-import { EPOCH, MAP } from './data';
+import { Puzzle, State, Summary } from "./types";
+import { EPOCH, MAP } from "./data";
+export { validatePuzzle, validateAllPuzzles } from "./validation";
 
 export function dayNumber(): number {
   const d = new Date();
