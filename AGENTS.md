@@ -109,14 +109,21 @@ console.log('h2:', h2s);
 ### Puzzle Generation Scripts
 
 ```bash
-# Generate diverse puzzles targeting underrepresented starting letters
-node scripts/generate-diverse.cjs [count]
+# Generate diverse puzzles by searching for valid puzzles with each possible
+# starting letter of h[0] (first horizontal word) in random order
+node scripts/generate-h0-diverse.cjs [count]
 
-# Original greedy approach
-node scripts/generate-puzzles.cjs [count]
+# Example: generate 20 new diverse puzzles
+node scripts/generate-h0-diverse.cjs 20
 ```
 
-These scripts find valid 6-word waffle puzzles with zero word overlap.
+This script:
+1. Loads existing puzzles from `src/puzzles.ts` and tracks current h[0] first letter distribution
+2. Iterates through all letters a-z in random order
+3. For each letter, searches for valid 6-word waffle puzzles where h[0] starts with that letter
+4. Only accepts puzzles with zero word overlap with existing puzzles
+5. Outputs new puzzles ready to add to `src/puzzles.ts`
+6. Reports final h[0] first letter distribution
 
 ### Updating Word List
 
