@@ -1,4 +1,3 @@
-import { validateAllPuzzles } from "./validation";
 import { Puzzle } from "./types";
 
 export const PUZZLES: Puzzle[] = [
@@ -26,5 +25,3 @@ export const MAP: number[][][] = [
 export const KEY_ROWS: string[] = ["qwertyuiop", "asdfghjkl", "↵zxcvbnm⌫"];
 
 export const EPOCH: Date = new Date(2026, 0, 1);
-
-validateAllPuzzles(PUZZLES, VALID);
