@@ -244,10 +244,24 @@ function initUI(): void {
   if (helpBtn) helpBtn.onclick = () => help?.classList.add("show");
 
   const closeHelp = document.getElementById("closeHelp");
-  if (closeHelp) closeHelp.onclick = () => help?.classList.remove("show");
+  if (closeHelp) {
+    const hideHelp = (e?: Event) => {
+      e?.preventDefault();
+      help?.classList.remove("show");
+    };
+    closeHelp.onclick = hideHelp;
+    closeHelp.addEventListener("touchstart", hideHelp, { passive: false });
+  }
 
   const closeResults = document.getElementById("closeResults");
-  if (closeResults) closeResults.onclick = () => results?.classList.remove("show");
+  if (closeResults) {
+    const hideResults = (e?: Event) => {
+      e?.preventDefault();
+      results?.classList.remove("show");
+    };
+    closeResults.onclick = hideResults;
+    closeResults.addEventListener("touchstart", hideResults, { passive: false });
+  }
 
   const submitBtn = document.getElementById("submit");
   if (submitBtn) submitBtn.onclick = submit;
