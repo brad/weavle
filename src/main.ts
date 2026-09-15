@@ -1,7 +1,7 @@
-import { Puzzle, ShareStyle } from './types';
+import { Puzzle } from './types';
 import { PUZZLES, VALID, KEY_ROWS } from './data';
 import { dayNumber, stateAt, gridLetters, keyState, complete } from './game';
-import { header, share, replayGif } from './share';
+import { share } from './share';
 
 let puzzleNumber: number;
 let puzzle: Puzzle;
@@ -11,7 +11,6 @@ let selected = -1;
 let input = "";
 let over = false;
 let won = false;
-let shareStyle: ShareStyle = "waffle";
 
 function pickDaily(): void {
   puzzleNumber = dayNumber();
@@ -87,8 +86,8 @@ function renderKeyboard(): void {
     r.className = "key-row";
     for (const c of row) {
       const b = document.createElement("button");
-      b.className = "key" + (c === "↵" || c === "⌫" ? " wide" : "") + (s[c] ? " " + s[c] : "");
-      b.textContent = c === "↵" ? "Enter" : c === "⌫" ? "Delete" : c;
+      b.className = "key" + (c === "↵" || c === "⌫" ? " wide" : "") + (s[c.toLowerCase()] ? " " + s[c.toLowerCase()] : "");
+      b.textContent = c === "↵" ? "Enter" : c === "⌫" ? "⌫" : c;
       b.onclick = () => press(c);
       r.appendChild(b);
     }
@@ -110,7 +109,7 @@ function press(c: string): void {
     input = input.slice(0, -1);
     return renderTyped();
   }
-  if (/^[a-z]$/.test(c) && input.length < 5) {
+  if (/^[a-z]$/i.test(c) && input.length < 5) {
     input += c.toUpperCase();
     renderTyped();
   }
@@ -154,10 +153,7 @@ function submit(): void {
 
 function renderShare(): void {
   const shareTextEl = document.getElementById("shareText");
-  if (shareTextEl) shareTextEl.textContent = share(shareStyle, puzzleNumber, won, guesses, answers);
-  document.querySelectorAll<HTMLElement>("[data-style]").forEach(b => {
-    b.classList.toggle("active", b.dataset.style === shareStyle);
-  });
+  if (shareTextEl) shareTextEl.textContent = share(puzzleNumber, won, guesses, answers, puzzle);
 }
 
 function showResults(): void {
@@ -174,7 +170,7 @@ function showResults(): void {
 }
 
 async function copyShare(): Promise<void> {
-  const shareContent = share(shareStyle, puzzleNumber, won, guesses, answers);
+  const shareContent = share(puzzleNumber, won, guesses, answers, puzzle);
   const copyBtn = document.getElementById("copyShare");
   try {
     await navigator.clipboard.writeText(shareContent);
@@ -184,36 +180,6 @@ async function copyShare(): Promise<void> {
     }, 1200);
   } catch {
     prompt("Copy results:", shareContent);
-  }
-}
-
-async function exportReplay(): Promise<void> {
-  const b = document.getElementById("makeReplayGif") as HTMLButtonElement | null;
-  if (!b) return;
-  const old = b.textContent || "";
-  b.disabled = true;
-  b.textContent = "Making replay…";
-  try {
-    const blob = replayGif(puzzleNumber, won, guesses, answers);
-    const name = "weavle-" + puzzleNumber + "-" + (won ? guesses.length : "x") + "-10.gif";
-    const file = new File([blob], name, { type: "image/gif" });
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ title: "Weavle", text: header(puzzleNumber, won, guesses.length), files: [file] });
-    } else {
-      const u = URL.createObjectURL(blob);
-      const a = Object.assign(document.createElement("a"), { href: u, download: name });
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(u), 1000);
-    }
-    b.textContent = "Replay saved";
-  } catch (e: any) {
-    b.textContent = "Replay unavailable";
-    alert(e?.message || "Could not create replay.");
-  } finally {
-    b.disabled = false;
-    setTimeout(() => {
-      b.textContent = old;
-    }, 1500);
   }
 }
 
@@ -239,6 +205,12 @@ function initUI(): void {
   const help = document.getElementById("help");
   const results = document.getElementById("results");
 
+  // Check localStorage for dismissed help
+  const helpDismissed = localStorage.getItem("weavle_help_dismissed") === "true";
+  if (!helpDismissed && help) {
+    help.classList.add("show");
+  }
+
   const helpBtn = document.getElementById("helpBtn");
   if (helpBtn) helpBtn.onclick = () => help?.classList.add("show");
 
@@ -247,6 +219,7 @@ function initUI(): void {
     const hideHelp = (e?: Event) => {
       e?.preventDefault();
       help?.classList.remove("show");
+      localStorage.setItem("weavle_help_dismissed", "true");
     };
     closeHelp.onclick = hideHelp;
     closeHelp.addEventListener("touchstart", hideHelp, { passive: false });
@@ -270,18 +243,6 @@ function initUI(): void {
 
   const copyShareBtn = document.getElementById("copyShare");
   if (copyShareBtn) copyShareBtn.onclick = copyShare;
-
-  const replayBtn = document.getElementById("makeReplayGif");
-  if (replayBtn) replayBtn.onclick = exportReplay;
-
-  document.querySelectorAll<HTMLElement>("[data-style]").forEach(b => {
-    b.onclick = () => {
-      if (b.dataset.style) {
-        shareStyle = b.dataset.style as ShareStyle;
-        renderShare();
-      }
-    };
-  });
 
   document.onkeydown = (e: KeyboardEvent) => {
     if (e.key === "Escape") {

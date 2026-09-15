@@ -13,4 +13,4 @@ export interface Summary {
   yellow: number;
 }
 
-export type ShareStyle = 'waffle' | 'trail' | 'cards';
+export type ShareStyle = 'waffle';

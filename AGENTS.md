@@ -1,0 +1,185 @@
+# Weavle Agent Guide
+
+## Project Overview
+
+Weavle is a daily word puzzle game where players find six overlapping 5-letter words (3 horizontal, 3 vertical) in a 5x5 waffle grid. Players have 10 guesses to solve all 6 words.
+
+## Architecture
+
+- **src/main.ts** - Main game logic, UI rendering, event handling
+- **src/game.ts** - Core game logic: scoring, state tracking, grid letters
+- **src/share.ts** - Share format generation (Waffle-style with emoji grid)
+- **src/validation.ts** - Puzzle validation (structure, dictionary, no-repeat rule)
+- **src/data.ts** - Constants, word list, keyboard layout
+- **src/puzzles.ts** - Puzzle definitions (separate file for maintainability)
+- **src/words.ts** - Auto-generated word list (3103 common 5-letter words)
+- **src/types.ts** - TypeScript interfaces
+- **src/index.html** - HTML structure with embedded CSS
+
+## Key Concepts
+
+### Grid Structure
+
+```
+Row 0: h[0][0] h[0][1] h[0][2] h[0][3] h[0][4]
+Row 1: v[0][1]  GAP   v[1][1]  GAP   v[2][1]
+Row 2: h[1][0] h[1][1] h[1][2] h[1][3] h[1][4]
+Row 3: v[0][3]  GAP   v[1][3]  GAP   v[2][3]
+Row 4: h[2][0] h[2][1] h[2][2] h[2][3] h[2][4]
+```
+
+Intersections (must match):
+- (0,0): h[0][0] = v[0][0]
+- (0,2): h[0][2] = v[1][0]
+- (0,4): h[0][4] = v[2][0]
+- (2,0): h[1][0] = v[0][2]
+- (2,2): h[1][2] = v[1][2]
+- (2,4): h[1][4] = v[2][2]
+- (4,0): h[2][0] = v[0][4]
+- (4,2): h[2][2] = v[1][4]
+- (4,4): h[2][4] = v[2][4]
+
+Gap positions (always empty): (1,1), (1,3), (3,1), (3,3)
+
+### Scoring
+
+Each guess is scored against all 6 answer words simultaneously using Wordle rules:
+- **Green (🟩)**: Letter correct in that exact position
+- **Yellow (🟨)**: Letter exists in word but different position
+- **Gray (⬛)**: Letter not in word
+
+Duplicate letters follow Wordle rules: each target word's letter can only be matched once.
+
+### Daily Puzzle Selection
+
+Puzzle number = days since epoch (2026-01-01). Cycles through PUZZLES array.
+
+## Adding New Puzzles
+
+### Requirements
+
+1. **Valid Structure**: 3 horizontal + 3 vertical 5-letter words with matching intersections
+2. **Dictionary Words**: All 6 words must exist in `VALID` (src/words.ts)
+3. **Unique Words**: No duplicates within a puzzle
+4. **No Recent Repeats**: Words cannot appear in previous 30 puzzles (180 words)
+
+### Process
+
+1. **Find valid puzzle** - Use the pattern matching approach:
+   - Pick 3 vertical words (v0, v1, v2)
+   - Derive required horizontal patterns:
+     - h0: v0[0] + v1[0] + ? + v2[0] + ?
+     - h1: v0[2] + v1[2] + ? + v2[2] + ?
+     - h2: v0[4] + v1[4] + ? + v2[4] + ?
+   - Find matching horizontal words from dictionary
+
+2. **Verify no word overlap** with recent puzzles (check last 30 puzzles in PUZZLES array)
+
+3. **Add to PUZZLES array** in src/data.ts
+
+4. **Run validation**: `npm run test` - validates all puzzles
+
+### Example Script
+
+```bash
+# Find valid puzzle patterns
+node -e "
+const fs = require('fs');
+const words = fs.readFileSync('src/words.ts', 'utf8')
+  .match(/'([a-z]{5})'/g).map(w => w.slice(1, -1));
+
+const byPattern = new Map();
+for (const w of words) {
+  const key = w[0] + ',' + w[2] + ',' + w[4];
+  if (!byPattern.has(key)) byPattern.set(key, []);
+  byPattern.get(key).push(w);
+}
+
+// Try vertical words
+const v0 = 'crane', v1 = 'apple', v2 = 'toast';
+const h0s = byPattern.get(v0[0]+','+v1[0]+','+v2[0]) || [];
+const h1s = byPattern.get(v0[2]+','+v1[2]+','+v2[2]) || [];
+const h2s = byPattern.get(v0[4]+','+v1[4]+','+v2[4]) || [];
+console.log('h0:', h0s);
+console.log('h1:', h1s);
+console.log('h2:', h2s);
+"
+```
+
+### Puzzle Generation Scripts
+
+```bash
+# Generate diverse puzzles targeting underrepresented starting letters
+node scripts/generate-diverse.cjs [count]
+
+# Original greedy approach
+node scripts/generate-puzzles.cjs [count]
+```
+
+These scripts find valid 6-word waffle puzzles with zero word overlap.
+
+### Updating Word List
+
+```bash
+npm run update-words
+# Fetches from https://gist.github.com/shmookey/b28e342e1b1756c4700f42f17102c2ff
+# Updates src/words.ts
+```
+
+## Validation Rules (src/validation.ts)
+
+- Exactly 3 horizontal and 3 vertical words
+- All words exactly 5 letters
+- All words in VALID dictionary
+- No duplicate words within puzzle
+- All 9 grid intersections match
+- No word used in previous 30 puzzles (180-word window)
+
+## Share Format
+
+```
+Weavle 123 4/10 ⭐⭐⭐⭐
+🟩🟩🟩🟩🟩
+⬛⭐⬛⭐🟩
+🟩⬛🟩⬛⬛
+⬛⭐⬛⭐⬛
+🟩⬛🟩⬛⬛
+```
+
+- Header: "Weavle {number} {guesses}/10" (+ stars for remaining guesses, max 4)
+- Grid: 5x5 emoji grid showing final state
+  - 🟩 = green (solved)
+  - 🟨 = yellow (hint)
+  - ⬛ = gray (wrong)
+  - ⬜ = gap (empty)
+  - ⭐ = stars in gap positions (up to 4, for guesses remaining)
+
+## Development
+
+```bash
+npm run dev      # Start Vite dev server
+npm run build    # TypeScript compile + Vite build
+npm run test     # Run vitest tests
+npm run update-words  # Refresh word list
+```
+
+## Testing
+
+- `validation.test.ts` - Puzzle validation logic
+- `share.test.ts` - Share format generation
+
+Run with: `npm run test`
+
+## Deployment
+
+GitHub Actions CI (`.github/workflows/ci.yml`):
+1. Runs tests on every PR/push
+2. Builds on merge to main
+3. Deploys to GitHub Pages
+
+## Key Constants (src/data.ts)
+
+- `EPOCH`: 2026-01-01 (day 1)
+- `KEY_ROWS`: Keyboard layout (capitalized, with Enter/Delete symbols)
+- `MAP`: Grid coordinate mappings for 6 words
+- `VALID`: Set of 3103 allowed words

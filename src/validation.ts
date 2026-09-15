@@ -1,6 +1,8 @@
 import { Puzzle } from "./types";
 
-export function validatePuzzle(puzzle: Puzzle, validWords?: Set<string>): string[] {
+const NO_REPEAT_WINDOW = 30;
+
+export function validatePuzzle(puzzle: Puzzle, validWords?: Set<string>, recentWords?: Set<string>): string[] {
   const errors: string[] = [];
   if (!puzzle.h || puzzle.h.length !== 3) {
     errors.push("Horizontal word list must contain exactly 3 words.");
@@ -24,6 +26,15 @@ export function validatePuzzle(puzzle: Puzzle, validWords?: Set<string>): string
     errors.push("Puzzle contains duplicate words.");
   }
 
+  if (recentWords) {
+    for (const word of words) {
+      const lower = word.toLowerCase();
+      if (recentWords.has(lower)) {
+        errors.push("Word " + word + " was used in the previous " + NO_REPEAT_WINDOW + " puzzles.");
+      }
+    }
+  }
+
   for (let hIdx = 0; hIdx < 3; hIdx++) {
     for (let vIdx = 0; vIdx < 3; vIdx++) {
       const hChar = puzzle.h[hIdx]?.[vIdx * 2];
@@ -40,10 +51,25 @@ export function validatePuzzle(puzzle: Puzzle, validWords?: Set<string>): string
 }
 
 export function validateAllPuzzles(puzzles: Puzzle[], validWords?: Set<string>): void {
+  const recentWords = new Set<string>();
+  const wordQueue: string[] = [];
+
   puzzles.forEach((puzzle, idx) => {
-    const errors = validatePuzzle(puzzle, validWords);
+    const errors = validatePuzzle(puzzle, validWords, recentWords);
     if (errors.length > 0) {
       throw new Error("Puzzle " + (idx + 1) + " validation failed:\n  " + errors.join("\n  "));
+    }
+
+    const words = [...puzzle.h, ...puzzle.v].map(w => w.toLowerCase());
+    for (const word of words) {
+      recentWords.add(word);
+      wordQueue.push(word);
+      if (wordQueue.length > NO_REPEAT_WINDOW * 6) {
+        const oldWord = wordQueue.shift();
+        if (oldWord && !wordQueue.includes(oldWord)) {
+          recentWords.delete(oldWord);
+        }
+      }
     }
   });
 }
