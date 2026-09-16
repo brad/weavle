@@ -247,22 +247,12 @@ function renderKeyboard(): void {
   KEY_ROWS.forEach(row => {
     const r = document.createElement("div");
     r.className = "key-row";
-    if (row.length === 9) {
-      const sp1 = document.createElement("div");
-      sp1.className = "key-spacer";
-      r.appendChild(sp1);
-    }
     for (const c of row) {
       const b = document.createElement("button");
       b.className = "key" + (c === "↵" || c === "⌫" ? " wide" : "") + (s[c.toLowerCase()] ? " " + s[c.toLowerCase()] : "");
       b.textContent = c === "↵" ? "Enter" : c === "⌫" ? "⌫" : c;
       b.onclick = () => press(c);
       r.appendChild(b);
-    }
-    if (row.length === 9) {
-      const sp2 = document.createElement("div");
-      sp2.className = "key-spacer";
-      r.appendChild(sp2);
     }
     k.appendChild(r);
   });
