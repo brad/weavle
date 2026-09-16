@@ -3,6 +3,15 @@ import { PUZZLES, VALID, KEY_ROWS } from './data';
 import { dayNumber, stateAt, gridLetters, keyState, complete } from './game';
 import { share } from './share';
 
+interface Stats {
+  played: number;
+  wins: number;
+  currentStreak: number;
+  maxStreak: number;
+  guessDist: number[];
+  lastPlayed: number;
+}
+
 let puzzleNumber: number;
 let puzzle: Puzzle;
 let answers: string[];
@@ -11,6 +20,107 @@ let selected = -1;
 let input = "";
 let over = false;
 let won = false;
+
+function loadStats(): Stats {
+  const stored = localStorage.getItem("weavle_stats");
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return defaultStats();
+    }
+  }
+  return defaultStats();
+}
+
+function defaultStats(): Stats {
+  return {
+    played: 0,
+    wins: 0,
+    currentStreak: 0,
+    maxStreak: 0,
+    guessDist: [0, 0, 0, 0, 0],
+    lastPlayed: 0
+  };
+}
+
+function saveStats(stats: Stats): void {
+  localStorage.setItem("weavle_stats", JSON.stringify(stats));
+}
+
+function updateStats(won: boolean, guessCount: number): void {
+  const stats = loadStats();
+  const today = dayNumber();
+
+  if (stats.lastPlayed === today) {
+    return;
+  }
+
+  stats.played++;
+  stats.lastPlayed = today;
+
+  if (won) {
+    stats.wins++;
+    stats.currentStreak++;
+    if (stats.currentStreak > stats.maxStreak) {
+      stats.maxStreak = stats.currentStreak;
+    }
+    const idx = Math.min(guessCount - 6, 4);
+    if (idx >= 0 && idx < 5) {
+      stats.guessDist[idx]++;
+    }
+  } else {
+    stats.currentStreak = 0;
+  }
+
+  saveStats(stats);
+}
+
+function renderStats(): void {
+  const stats = loadStats();
+  const content = document.getElementById("statsContent");
+  if (!content) return;
+
+  const winPct = stats.played > 0 ? Math.round((stats.wins / stats.played) * 100) : 0;
+  const maxDist = Math.max(...stats.guessDist, 1);
+
+  content.innerHTML = `
+    <div style="display:flex;justify-content:space-around;margin-bottom:16px;font-size:.9rem">
+      <div style="text-align:center">
+        <div style="font-size:1.5rem;font-weight:700">${stats.played}</div>
+        <div style="color:var(--muted);font-size:.7rem">PLAYED</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:1.5rem;font-weight:700">${winPct}%</div>
+        <div style="color:var(--muted);font-size:.7rem">WIN %</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:1.5rem;font-weight:700">${stats.currentStreak}</div>
+        <div style="color:var(--muted);font-size:.7rem">CURRENT STREAK</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:1.5rem;font-weight:700">${stats.maxStreak}</div>
+        <div style="color:var(--muted);font-size:.7rem">MAX STREAK</div>
+      </div>
+    </div>
+    <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px">GUESS DISTRIBUTION</div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      ${stats.guessDist.map((count, i) => {
+        const guessNum = i + 6;
+        const barWidth = (count / maxDist) * 100;
+        return `
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:28px;text-align:right;font-variant-numeric:tabular-nums">${guessNum}</span>
+            <div style="flex:1;height:8px;background:var(--cell);border-radius:4px;overflow:hidden">
+              <div style="width:${barWidth}%;height:100%;background:var(--green);transition:width .3s"></div>
+            </div>
+            <span style="width:36px;text-align:right;font-variant-numeric:tabular-nums">${count}</span>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
 
 function pickDaily(): void {
   puzzleNumber = dayNumber();
@@ -165,6 +275,7 @@ function showResults(): void {
       ? "You solved Weavle " + puzzleNumber + " in " + guesses.length + "/10 guesses."
       : "You used all 10 guesses.";
   }
+  updateStats(won, guesses.length);
   renderShare();
   document.getElementById("results")?.classList.add("show");
 }
@@ -204,6 +315,7 @@ function reset(): void {
 function initUI(): void {
   const help = document.getElementById("help");
   const results = document.getElementById("results");
+  const stats = document.getElementById("stats");
 
   // Check localStorage for dismissed help
   const helpDismissed = localStorage.getItem("weavle_help_dismissed") === "true";
@@ -213,6 +325,12 @@ function initUI(): void {
 
   const helpBtn = document.getElementById("helpBtn");
   if (helpBtn) helpBtn.onclick = () => help?.classList.add("show");
+
+  const statsBtn = document.getElementById("statsBtn");
+  if (statsBtn) statsBtn.onclick = () => {
+    renderStats();
+    stats?.classList.add("show");
+  };
 
   const closeHelp = document.getElementById("closeHelp");
   if (closeHelp) {
@@ -235,6 +353,16 @@ function initUI(): void {
     closeResults.addEventListener("touchstart", hideResults, { passive: false });
   }
 
+  const closeStats = document.getElementById("closeStats");
+  if (closeStats) {
+    const hideStats = (e?: Event) => {
+      e?.preventDefault();
+      stats?.classList.remove("show");
+    };
+    closeStats.onclick = hideStats;
+    closeStats.addEventListener("touchstart", hideStats, { passive: false });
+  }
+
   const submitBtn = document.getElementById("submit");
   if (submitBtn) submitBtn.onclick = submit;
 
@@ -248,7 +376,8 @@ function initUI(): void {
     if (e.key === "Escape") {
       help?.classList.remove("show");
       results?.classList.remove("show");
-    } else if (!help?.classList.contains("show") && !results?.classList.contains("show")) {
+      stats?.classList.remove("show");
+    } else if (!help?.classList.contains("show") && !results?.classList.contains("show") && !stats?.classList.contains("show")) {
       if (e.key === "Enter") press("↵");
       else if (e.key === "Backspace") press("⌫");
       else if (/^[a-z]$/i.test(e.key)) press(e.key.toLowerCase());
