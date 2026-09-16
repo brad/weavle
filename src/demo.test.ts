@@ -1,31 +1,42 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach } from "vitest";
-import { renderDemoBoard, initDemo, stopDemoLoop } from "./demo";
+import { renderDemoBoard, initDemo, stopDemoLoop, resetDemoState } from "./demo";
 
 describe("demo board", () => {
   beforeEach(() => {
     document.body.innerHTML = `
-      <div id="demoBoard"></div>
-      <button id="demoTab1"></button>
-      <button id="demoTab2"></button>
+      <div class="demo-board-wrapper" id="demoBoardWrapper">
+        <div class="demo-board-track" id="demoBoardTrack">
+          <div class="demo-board" id="demoBoard1"></div>
+          <div class="demo-board" id="demoBoard2"></div>
+        </div>
+      </div>
+      <p id="demoTimelineLabel"></p>
+      <button id="demoTab1" class="guess-tab demo-tab current">1</button>
+      <button id="demoTab2" class="guess-tab demo-tab">2</button>
     `;
+    resetDemoState();
   });
 
   it("renders 25 cells for 5x5 demo grid", () => {
     renderDemoBoard(0, false);
-    const board = document.getElementById("demoBoard");
+    // First render goes to board2 (index starts at 1)
+    const board = document.getElementById("demoBoard2");
     expect(board?.children.length).toBe(25);
   });
 
   it("highlights green and yellow cells for guess 1", () => {
+    resetDemoState();
     renderDemoBoard(0, false);
-    const revealedCells = document.querySelectorAll("#demoBoard .cell.revealed");
+    const revealedCells = document.querySelectorAll("#demoBoard2 .cell.revealed");
     expect(revealedCells.length).toBeGreaterThan(0);
   });
 
   it("shows row 2 completely green for guess 2 ('least')", () => {
-    renderDemoBoard(1, false);
-    const cells = document.querySelectorAll("#demoBoard .cell");
+    resetDemoState();
+    renderDemoBoard(0, false); // First render to board2
+    renderDemoBoard(1, false); // Second render to board1
+    const cells = document.querySelectorAll("#demoBoard1 .cell");
     // Row 2 is indices 10, 11, 12, 13, 14
     expect(cells[10].classList.contains("revealed")).toBe(true);
     expect(cells[11].classList.contains("revealed")).toBe(true);
@@ -40,6 +51,7 @@ describe("demo board", () => {
   });
 
   it("allows switching tabs manually", () => {
+    resetDemoState();
     initDemo();
     const tab2 = document.getElementById("demoTab2") as HTMLButtonElement;
     tab2.click();

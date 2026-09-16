@@ -30,6 +30,7 @@ let selected = -1;
 let input = "";
 let over = false;
 let won = false;
+let currentBoardIndex = 1;
 
 function loadStats(): Stats {
   const stored = localStorage.getItem("weavle_stats");
@@ -171,6 +172,12 @@ function pickDaily(): void {
   const puzzleNumEl = document.getElementById("puzzleNumber");
   if (puzzleNumEl) puzzleNumEl.textContent = String(puzzleNumber);
 
+  const track = document.getElementById("boardTrack");
+  if (track) {
+    track.style.transform = "translateX(0)";
+  }
+  currentBoardIndex = 1;
+
   const saved = loadGameState();
   if (saved) {
     guesses = saved.guesses;
@@ -207,16 +214,15 @@ function pickDaily(): void {
 function renderBoard(animateSlide = false): void {
   const s = stateAt(selected, guesses, answers);
   const letters = gridLetters(puzzle);
-  const b = document.getElementById("board");
-  if (!b) return;
-  if (animateSlide) {
-    b.classList.remove("sliding");
-    void b.offsetWidth;
-    b.classList.add("sliding");
-  } else {
-    b.classList.remove("sliding");
-  }
-  b.innerHTML = "";
+
+  const nextBoardIndex = currentBoardIndex === 1 ? 2 : 1;
+  const currentBoard = document.getElementById("board" + currentBoardIndex);
+  const nextBoard = document.getElementById("board" + nextBoardIndex);
+  const track = document.getElementById("boardTrack");
+
+  if (!currentBoard || !nextBoard || !track) return;
+
+  nextBoard.innerHTML = "";
   for (let r = 0; r < 5; r++) {
     for (let c = 0; c < 5; c++) {
       const d = document.createElement("div");
@@ -226,8 +232,23 @@ function renderBoard(animateSlide = false): void {
         d.className = "cell" + (s.green[r][c] ? " revealed" : s.yellow[r][c] ? " hint" : "");
         d.textContent = s.green[r][c] ? letters[r][c] : (s.yellow[r][c] || "");
       }
-      b.appendChild(d);
+      nextBoard.appendChild(d);
     }
+  }
+
+  if (animateSlide && selected > 0) {
+    const targetTransform = nextBoardIndex === 2 ? "translateX(-50%)" : "translateX(0)";
+
+    track.style.transition = "transform .25s ease-out";
+    track.style.transform = targetTransform;
+
+    setTimeout(() => {
+      track.style.transition = "";
+      currentBoardIndex = nextBoardIndex;
+    }, 250);
+  } else {
+    track.style.transform = nextBoardIndex === 1 ? "translateX(0)" : "translateX(-50%)";
+    currentBoardIndex = nextBoardIndex;
   }
 }
 
@@ -283,7 +304,7 @@ function renderKeyboard(): void {
     for (const c of row) {
       const b = document.createElement("button");
       b.className = "key" + (c === "↵" || c === "⌫" ? " wide" : "") + (s[c.toLowerCase()] ? " " + s[c.toLowerCase()] : "");
-      b.textContent = c === "↵" ? "Enter" : c === "⌫" ? "⌫" : c;
+      b.textContent = c === "↵" ? "ENTER" : c === "⌫" ? "⌫" : c;
       b.onclick = () => press(c);
       r.appendChild(b);
     }
