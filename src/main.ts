@@ -244,15 +244,25 @@ function renderKeyboard(): void {
   if (!k) return;
   const s = keyState(guesses, answers);
   k.innerHTML = "";
-  KEY_ROWS.forEach(row => {
+  KEY_ROWS.forEach((row, rowIndex) => {
     const r = document.createElement("div");
     r.className = "key-row";
+    if (rowIndex === 1) {
+      const spacerLeft = document.createElement("div");
+      spacerLeft.className = "key-spacer";
+      r.appendChild(spacerLeft);
+    }
     for (const c of row) {
       const b = document.createElement("button");
       b.className = "key" + (c === "↵" || c === "⌫" ? " wide" : "") + (s[c.toLowerCase()] ? " " + s[c.toLowerCase()] : "");
       b.textContent = c === "↵" ? "Enter" : c === "⌫" ? "⌫" : c;
       b.onclick = () => press(c);
       r.appendChild(b);
+    }
+    if (rowIndex === 1) {
+      const spacerRight = document.createElement("div");
+      spacerRight.className = "key-spacer";
+      r.appendChild(spacerRight);
     }
     k.appendChild(r);
   });
