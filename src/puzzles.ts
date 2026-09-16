@@ -29,4 +29,8 @@ export const PUZZLES: Puzzle[] = [
   { h: ["vowed", "awake", "seeds"], v: ["vials", "weave", "dress"] },
   { h: ["swamp", "autos", "faced"], v: ["staff", "antic", "posed"] },
   { h: ["excel", "groan", "ruder"], v: ["eager", "cloud", "lunar"] },
+  { h: ["gases", "email", "tiers"], v: ["greet", "spare", "sells"] },
+  { h: ["bland", "learn", "scene"], v: ["bales", "abase", "dance"] },
+  { h: ["cages", "exile", "eject"], v: ["crepe", "guise", "sweat"] },
+  { h: ["pasha", "knave", "reset"], v: ["poker", "seats", "avert"] },
 ];

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Puzzle generator for Weavle - Target diversity in first horizontal word with randomization
+ * Keeps searching until target count is reached (no overlap)
  */
 
 const fs = require('fs');
@@ -89,16 +90,30 @@ function findPuzzlesForH0Letter(targetLetter, maxResults = 3) {
   return results;
 }
 
-// Find puzzles for randomized target letters
+// Find puzzles for randomized target letters - keep cycling until target reached
 const targetCount = parseInt(process.argv[2]) || 20;
 const newPuzzles = [];
 
-// All letters including 'a' (we removed the A-heavy puzzles), shuffled
-const letters = 'abcdefghijklmnopqrstuvwxyz'.split('').sort(() => Math.random() - 0.5);
+// All letters, shuffled
+let letters = 'abcdefghijklmnopqrstuvwxyz'.split('').sort(() => Math.random() - 0.5);
+let letterIndex = 0;
 
-for (const letter of letters) {
-  if (newPuzzles.length >= targetCount) break;
-  const puzzles = findPuzzlesForH0Letter(letter, 2);
+while (newPuzzles.length < targetCount) {
+  const letter = letters[letterIndex];
+  letterIndex++;
+  
+  // Reshuffle letters if we've exhausted all 26
+  if (letterIndex >= letters.length) {
+    letters = 'abcdefghijklmnopqrstuvwxyz'.split('').sort(() => Math.random() - 0.5);
+    letterIndex = 0;
+  }
+  
+  const puzzles = findPuzzlesForH0Letter(letter, 3);
+  if (puzzles.length === 0) {
+    console.log(`  No puzzles found for h[0]='${letter}', trying next letter...`);
+    continue;
+  }
+  
   for (const p of puzzles) {
     if (newPuzzles.length >= targetCount) break;
     newPuzzles.push(p);
