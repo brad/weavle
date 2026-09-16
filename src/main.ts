@@ -177,10 +177,30 @@ function pickDaily(): void {
     input = saved.input;
     over = saved.over;
     won = saved.won;
-    if (over) {
-      setTimeout(() => showResults(), 250);
-    }
+  } else {
+    guesses = [];
+    selected = -1;
+    input = "";
+    over = false;
+    won = false;
   }
+
+  const guessCountEl = document.getElementById("guessCount");
+  if (guessCountEl) guessCountEl.textContent = String(guesses.length);
+
+  if (over) {
+    message(won ? "Solved in " + guesses.length + " guesses." : "Bust. The words were " + answers.join(", ").toUpperCase() + ".", !won);
+    setTimeout(() => showResults(), 250);
+  } else if (guesses.length > 0) {
+    message((10 - guesses.length) + " guesses left.");
+  } else {
+    message("Use the keyboard to enter a guess.");
+  }
+
+  renderBoard();
+  renderTabs();
+  renderTyped();
+  renderKeyboard();
 }
 
 function renderBoard(): void {
@@ -452,7 +472,7 @@ function initUI(): void {
     }
   };
 
-  reset();
+  pickDaily();
 }
 
 if (document.readyState === "loading") {
