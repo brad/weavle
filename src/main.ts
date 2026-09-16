@@ -178,10 +178,30 @@ function pickDaily(): void {
     input = saved.input;
     over = saved.over;
     won = saved.won;
-    if (over) {
-      setTimeout(() => showResults(), 250);
-    }
+  } else {
+    guesses = [];
+    selected = -1;
+    input = "";
+    over = false;
+    won = false;
   }
+
+  const guessCountEl = document.getElementById("guessCount");
+  if (guessCountEl) guessCountEl.textContent = String(guesses.length);
+
+  if (over) {
+    message(won ? "Solved in " + guesses.length + " guesses." : "Bust. The words were " + answers.join(", ").toUpperCase() + ".", !won);
+    setTimeout(() => showResults(), 250);
+  } else if (guesses.length > 0) {
+    message((10 - guesses.length) + " guesses left.");
+  } else {
+    message("Use the keyboard to enter a guess.");
+  }
+
+  renderBoard();
+  renderTabs();
+  renderTyped();
+  renderKeyboard();
 }
 
 function renderBoard(animateSlide = false): void {
@@ -252,15 +272,25 @@ function renderKeyboard(): void {
   if (!k) return;
   const s = keyState(guesses, answers);
   k.innerHTML = "";
-  KEY_ROWS.forEach(row => {
+  KEY_ROWS.forEach((row, rowIndex) => {
     const r = document.createElement("div");
     r.className = "key-row";
+    if (rowIndex === 1) {
+      const spacerLeft = document.createElement("div");
+      spacerLeft.className = "key-spacer";
+      r.appendChild(spacerLeft);
+    }
     for (const c of row) {
       const b = document.createElement("button");
       b.className = "key" + (c === "↵" || c === "⌫" ? " wide" : "") + (s[c.toLowerCase()] ? " " + s[c.toLowerCase()] : "");
       b.textContent = c === "↵" ? "Enter" : c === "⌫" ? "⌫" : c;
       b.onclick = () => press(c);
       r.appendChild(b);
+    }
+    if (rowIndex === 1) {
+      const spacerRight = document.createElement("div");
+      spacerRight.className = "key-spacer";
+      r.appendChild(spacerRight);
     }
     k.appendChild(r);
   });
@@ -457,7 +487,7 @@ function initUI(): void {
   };
 
   initDemo();
-  reset();
+  pickDaily();
 }
 
 if (document.readyState === "loading") {
