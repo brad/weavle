@@ -125,6 +125,33 @@ This script:
 5. Outputs new puzzles ready to add to `src/puzzles.ts`
 6. Reports final h[0] first letter distribution
 
+### Adding New Puzzles (Workflow)
+
+```bash
+# 1. Generate new diverse puzzles (e.g., 10)
+node scripts/generate-h0-diverse.cjs 10
+
+# 2. Copy the output puzzles (from "Found X new diverse puzzles:" section)
+#    and append them to src/puzzles.ts array (no blank lines, no comments)
+
+# 3. Run validation to ensure no word overlap and all constraints pass
+npm run test
+```
+
+Example output to copy:
+```
+  1: h=[halls, nudge, sieve] v=[hands, ladle, siege]
+  2: h=[magic, loose, needs] v=[melon, globe, crews]
+  ...
+```
+
+Append to `src/puzzles.ts`:
+```typescript
+  { h: ["halls", "nudge", "sieve"], v: ["hands", "ladle", "siege"] },
+  { h: ["magic", "loose", "needs"], v: ["melon", "globe", "crews"] },
+];
+```
+
 ### Updating Word List
 
 ```bash
