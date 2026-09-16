@@ -1,3 +1,4 @@
+import { initDemo, startDemoLoop, stopDemoLoop } from './demo';
 import { Puzzle } from './types';
 import { PUZZLES, VALID, KEY_ROWS } from './data';
 import { dayNumber, stateAt, gridLetters, keyState, complete } from './game';
@@ -130,11 +131,18 @@ function pickDaily(): void {
   if (puzzleNumEl) puzzleNumEl.textContent = String(puzzleNumber);
 }
 
-function renderBoard(): void {
+function renderBoard(animateSlide = false): void {
   const s = stateAt(selected, guesses, answers);
   const letters = gridLetters(puzzle);
   const b = document.getElementById("board");
   if (!b) return;
+  if (animateSlide) {
+    b.classList.remove("sliding");
+    void b.offsetWidth;
+    b.classList.add("sliding");
+  } else {
+    b.classList.remove("sliding");
+  }
   b.innerHTML = "";
   for (let r = 0; r < 5; r++) {
     for (let c = 0; c < 5; c++) {
@@ -179,7 +187,7 @@ function renderTabs(): void {
     b.title = g.toUpperCase();
     b.onclick = () => {
       selected = i;
-      renderBoard();
+      renderBoard(true);
       renderTabs();
     };
     t.appendChild(b);
@@ -237,7 +245,7 @@ function submit(): void {
   guesses.push(g);
   selected = guesses.length - 1;
   const s = stateAt(selected, guesses, answers);
-  renderBoard();
+  renderBoard(true);
   renderTabs();
   renderKeyboard();
 
@@ -321,10 +329,14 @@ function initUI(): void {
   const helpDismissed = localStorage.getItem("weavle_help_dismissed") === "true";
   if (!helpDismissed && help) {
     help.classList.add("show");
+    startDemoLoop();
   }
 
   const helpBtn = document.getElementById("helpBtn");
-  if (helpBtn) helpBtn.onclick = () => help?.classList.add("show");
+  if (helpBtn) helpBtn.onclick = () => {
+    help?.classList.add("show");
+    startDemoLoop();
+  };
 
   const statsBtn = document.getElementById("statsBtn");
   if (statsBtn) statsBtn.onclick = () => {
@@ -337,6 +349,7 @@ function initUI(): void {
     const hideHelp = (e?: Event) => {
       e?.preventDefault();
       help?.classList.remove("show");
+      stopDemoLoop();
       localStorage.setItem("weavle_help_dismissed", "true");
     };
     closeHelp.onclick = hideHelp;
@@ -374,6 +387,7 @@ function initUI(): void {
 
   document.onkeydown = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
+      if (help?.classList.contains("show")) stopDemoLoop();
       help?.classList.remove("show");
       results?.classList.remove("show");
       stats?.classList.remove("show");
@@ -384,6 +398,7 @@ function initUI(): void {
     }
   };
 
+  initDemo();
   reset();
 }
 
