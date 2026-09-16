@@ -507,6 +507,70 @@ function initUI(): void {
     }
   };
 
+  const boardWrapper = document.getElementById("boardWrapper");
+  if (boardWrapper) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    boardWrapper.addEventListener("touchstart", (e: TouchEvent) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    boardWrapper.addEventListener("touchend", (e: TouchEvent) => {
+      if (guesses.length < 2) return;
+      if (over) return;
+
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const dx = touchEndX - touchStartX;
+      const dy = touchEndY - touchStartY;
+
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+        if (dx > 0 && selected > 0) {
+          selected--;
+          renderBoard(true);
+          renderTabs();
+        } else if (dx < 0 && selected < guesses.length - 1) {
+          selected++;
+          renderBoard(true);
+          renderTabs();
+        }
+      }
+    }, { passive: true });
+  }
+
+  const demoBoardWrapper = document.getElementById("demoBoardWrapper");
+  if (demoBoardWrapper) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    demoBoardWrapper.addEventListener("touchstart", (e: TouchEvent) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    demoBoardWrapper.addEventListener("touchend", (e: TouchEvent) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const dx = touchEndX - touchStartX;
+      const dy = touchEndY - touchStartY;
+
+      const tab1 = document.getElementById("demoTab1");
+      const tab2 = document.getElementById("demoTab2");
+      const isTab1Active = tab1?.classList.contains("current");
+      const isTab2Active = tab2?.classList.contains("current");
+
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+        if (dx > 0 && !isTab1Active) {
+          tab1?.click();
+        } else if (dx < 0 && !isTab2Active) {
+          tab2?.click();
+        }
+      }
+    }, { passive: true });
+  }
+
   initDemo();
   pickDaily();
 }
