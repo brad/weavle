@@ -119,9 +119,9 @@ node scripts/generate-h0-diverse.cjs 20
 
 This script:
 1. Loads existing puzzles from `src/puzzles.ts` and tracks current h[0] first letter distribution
-2. Iterates through all letters a-z in random order
+2. Iterates through all letters a-z in random order (cycling until target reached)
 3. For each letter, searches for valid 6-word waffle puzzles where h[0] starts with that letter
-4. Only accepts puzzles with zero word overlap with existing puzzles
+4. Only accepts puzzles with zero word overlap with existing puzzles AND zero overlap within the generated batch
 5. Outputs new puzzles ready to add to `src/puzzles.ts`
 6. Reports final h[0] first letter distribution
 
