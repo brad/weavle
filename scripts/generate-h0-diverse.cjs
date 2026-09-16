@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Puzzle generator for Weavle - Target diversity in first horizontal word with randomization
- * Keeps searching until target count is reached (no overlap)
+ * Keeps searching until target count is reached (no overlap with existing OR new puzzles)
  */
 
 const fs = require('fs');
@@ -42,10 +42,9 @@ for (const [l, c] of Object.entries(h0FirstCounts).sort()) {
   console.log(`  ${l}: ${c}`);
 }
 
-// Find puzzles where h[0] starts with target letter
-function findPuzzlesForH0Letter(targetLetter, maxResults = 3) {
-  const results = [];
-  
+// Find ONE puzzle where h[0] starts with target letter
+// batchUsed: words already selected in this batch (to avoid intra-batch overlap)
+function findPuzzleForH0Letter(targetLetter, batchUsed) {
   // Shuffle word arrays for randomization
   const shuffledV0 = words.filter(w => w[0] === targetLetter).sort(() => Math.random() - 0.5);
   const shuffledV1 = [...words].sort(() => Math.random() - 0.5);
@@ -77,17 +76,17 @@ function findPuzzlesForH0Letter(targetLetter, maxResults = 3) {
               const allWords = [h0, h1, h2, v0, v1, v2];
               const unique = new Set(allWords);
               if (unique.size !== 6) continue;
-              if (allWords.some(w => used.has(w))) continue;
+              // Check against both existing used words AND batch-used words
+              if (allWords.some(w => used.has(w) || batchUsed.has(w))) continue;
               
-              results.push({ h: [h0, h1, h2], v: [v0, v1, v2] });
-              if (results.length >= maxResults) return results;
+              return { h: [h0, h1, h2], v: [v0, v1, v2] };
             }
           }
         }
       }
     }
   }
-  return results;
+  return null;
 }
 
 // Find puzzles for randomized target letters - keep cycling until target reached
@@ -97,6 +96,9 @@ const newPuzzles = [];
 // All letters, shuffled
 let letters = 'abcdefghijklmnopqrstuvwxyz'.split('').sort(() => Math.random() - 0.5);
 let letterIndex = 0;
+
+// Track words used within this batch to avoid intra-batch overlap
+const batchUsed = new Set();
 
 while (newPuzzles.length < targetCount) {
   const letter = letters[letterIndex];
@@ -108,18 +110,18 @@ while (newPuzzles.length < targetCount) {
     letterIndex = 0;
   }
   
-  const puzzles = findPuzzlesForH0Letter(letter, 3);
-  if (puzzles.length === 0) {
+  const p = findPuzzleForH0Letter(letter, batchUsed);
+  if (!p) {
     console.log(`  No puzzles found for h[0]='${letter}', trying next letter...`);
     continue;
   }
   
-  for (const p of puzzles) {
-    if (newPuzzles.length >= targetCount) break;
-    newPuzzles.push(p);
-    [...p.h, ...p.v].forEach(w => used.add(w));
-    console.log(`Added for h[0]='${letter}': h=[${p.h.join(', ')}] v=[${p.v.join(', ')}]`);
-  }
+  newPuzzles.push(p);
+  [...p.h, ...p.v].forEach(w => {
+    used.add(w);
+    batchUsed.add(w);
+  });
+  console.log(`Added for h[0]='${letter}': h=[${p.h.join(', ')}] v=[${p.v.join(', ')}]`);
 }
 
 console.log(`\nFound ${newPuzzles.length} new diverse puzzles:`);
