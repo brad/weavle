@@ -18,6 +18,7 @@ export function renderDemoBoard(index: number, animateSlide = false): void {
   const boardEl = document.getElementById("demoBoard");
   const tab1 = document.getElementById("demoTab1");
   const tab2 = document.getElementById("demoTab2");
+  const timelineLabel = document.getElementById("demoTimelineLabel");
 
   if (!boardEl) return;
 
@@ -46,9 +47,10 @@ export function renderDemoBoard(index: number, animateSlide = false): void {
     }
   }
 
-  if (tab1 && tab2) {
+  if (tab1 && tab2 && timelineLabel) {
     tab1.className = "guess-tab demo-tab" + (index === 0 ? " current" : "");
     tab2.className = "guess-tab demo-tab" + (index === 1 ? " current" : "");
+    timelineLabel.textContent = "Showing board after guess " + (index + 1) + ": " + DEMO_GUESSES[index].toUpperCase();
   }
 }
 
