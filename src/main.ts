@@ -13,6 +13,15 @@ interface Stats {
   lastPlayed: number;
 }
 
+interface GameState {
+  puzzleNumber: number;
+  guesses: string[];
+  selected: number;
+  input: string;
+  over: boolean;
+  won: boolean;
+}
+
 let puzzleNumber: number;
 let puzzle: Puzzle;
 let answers: string[];
@@ -47,6 +56,38 @@ function defaultStats(): Stats {
 
 function saveStats(stats: Stats): void {
   localStorage.setItem("weavle_stats", JSON.stringify(stats));
+}
+
+function saveGameState(): void {
+  const state: GameState = {
+    puzzleNumber,
+    guesses,
+    selected,
+    input,
+    over,
+    won
+  };
+  localStorage.setItem("weavle_game", JSON.stringify(state));
+}
+
+function loadGameState(): GameState | null {
+  const stored = localStorage.getItem("weavle_game");
+  if (!stored) return null;
+  try {
+    const state = JSON.parse(stored);
+    const today = dayNumber();
+    if (state.puzzleNumber !== today) {
+      localStorage.removeItem("weavle_game");
+      return null;
+    }
+    return state;
+  } catch {
+    return null;
+  }
+}
+
+function clearGameState(): void {
+  localStorage.removeItem("weavle_game");
 }
 
 function updateStats(won: boolean, guessCount: number): void {
@@ -129,6 +170,18 @@ function pickDaily(): void {
   answers = [...puzzle.h, ...puzzle.v];
   const puzzleNumEl = document.getElementById("puzzleNumber");
   if (puzzleNumEl) puzzleNumEl.textContent = String(puzzleNumber);
+
+  const saved = loadGameState();
+  if (saved) {
+    guesses = saved.guesses;
+    selected = saved.selected;
+    input = saved.input;
+    over = saved.over;
+    won = saved.won;
+    if (over) {
+      setTimeout(() => showResults(), 250);
+    }
+  }
 }
 
 function renderBoard(animateSlide = false): void {
@@ -257,6 +310,7 @@ function submit(): void {
     won = true;
     message("Solved in " + guesses.length + " guesses.");
     setTimeout(() => showResults(), 250);
+    saveGameState();
     return;
   }
   if (guesses.length === 10) {
@@ -264,9 +318,11 @@ function submit(): void {
     won = false;
     message("Bust. The words were " + answers.join(", ").toUpperCase() + ".", true);
     setTimeout(() => showResults(), 250);
+    saveGameState();
     return;
   }
   message((10 - guesses.length) + " guesses left.");
+  saveGameState();
 }
 
 function renderShare(): void {
@@ -286,6 +342,7 @@ function showResults(): void {
   updateStats(won, guesses.length);
   renderShare();
   document.getElementById("results")?.classList.add("show");
+  saveGameState();
 }
 
 async function copyShare(): Promise<void> {
@@ -303,6 +360,7 @@ async function copyShare(): Promise<void> {
 }
 
 function reset(): void {
+  clearGameState();
   pickDaily();
   guesses = [];
   selected = -1;
