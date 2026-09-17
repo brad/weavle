@@ -31,4 +31,13 @@ describe('UI Layout and CSS Constraints', () => {
     expect(KEY_ROWS[1]).toEqual(["A","S","D","F","G","H","J","K","L"]);
     expect(KEY_ROWS[2]).toEqual(["↵","Z","X","C","V","B","N","M","⌫"]);
   });
+  it('index.html configures absolute HTTPS URLs for Open Graph and Twitter metadata', () => {
+    const htmlPath = path.resolve(__dirname, 'index.html');
+    const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+
+    expect(htmlContent).toContain('<meta property="og:url" content="https://brad.github.io/weavle/">');
+    expect(htmlContent).toContain('<meta property="og:image" content="https://brad.github.io/weavle/og-image.png">');
+    expect(htmlContent).toContain('<meta property="og:image:secure_url" content="https://brad.github.io/weavle/og-image.png">');
+    expect(htmlContent).toContain('<meta name="twitter:image" content="https://brad.github.io/weavle/og-image.png">');
+  });
 });
