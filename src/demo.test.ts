@@ -20,22 +20,21 @@ describe("demo board", () => {
 
   it("renders 25 cells for 5x5 demo grid", () => {
     renderDemoBoard(0, false);
-    // First render goes to board2 (index starts at 1)
-    const board = document.getElementById("demoBoard2");
+    const board = document.getElementById("demoBoard1");
     expect(board?.children.length).toBe(25);
   });
 
   it("highlights green and yellow cells for guess 1", () => {
     resetDemoState();
     renderDemoBoard(0, false);
-    const revealedCells = document.querySelectorAll("#demoBoard2 .cell.revealed");
+    const revealedCells = document.querySelectorAll("#demoBoard1 .cell.revealed");
     expect(revealedCells.length).toBeGreaterThan(0);
   });
 
   it("shows row 2 completely green for guess 2 ('least')", () => {
     resetDemoState();
-    renderDemoBoard(0, false); // First render to board2
-    renderDemoBoard(1, false); // Second render to board1
+    renderDemoBoard(0, false);
+    renderDemoBoard(1, false);
     const cells = document.querySelectorAll("#demoBoard1 .cell");
     // Row 2 is indices 10, 11, 12, 13, 14
     expect(cells[10].classList.contains("revealed")).toBe(true);
