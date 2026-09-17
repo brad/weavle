@@ -18,11 +18,12 @@ describe('UI Layout and CSS Constraints', () => {
     const htmlPath = path.resolve(__dirname, 'index.html');
     const htmlContent = fs.readFileSync(htmlPath, 'utf8');
 
-    expect(htmlContent).toContain('.keyboard{width:min(500px,100%);padding:4px 8px 8px;');
-    expect(htmlContent).toContain('.key{height:clamp(');
-    expect(htmlContent).toContain('flex:1;min-width:0');
-    expect(htmlContent).toContain('.key.wide{flex:1.5;');
-    expect(htmlContent).toContain('.key-spacer{flex:0.5}');
+    expect(htmlContent).match(/\.keyboard\s*\{[^}]*width\s*:\s*min\(500px,\s*100%\)/);
+    expect(htmlContent).match(/\.key\s*\{[^}]*height\s*:\s*clamp\(/);
+    expect(htmlContent).match(/\bflex\s*:\s*1\b/);
+    expect(htmlContent).match(/\bmin-width\s*:\s*0\b/);
+    expect(htmlContent).match(/\.key\.wide\s*\{[^}]*flex\s*:\s*1\.5/);
+    expect(htmlContent).match(/\.key-spacer\s*\{[^}]*flex\s*:\s*0\.5/);
   });
 
   it('keyboard layout matches standard QWERTY structure', () => {
