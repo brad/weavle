@@ -217,7 +217,7 @@ export function renderBoard(direction: SlideDirection = 'none'): void {
   if (mainSlideTimeout) {
     clearTimeout(mainSlideTimeout);
     mainSlideTimeout = null;
-    track.style.transition = "";
+    track.style.transition = "none";
     board1.innerHTML = board2.innerHTML;
     board1.style.order = "1";
     board2.style.order = "2";
@@ -225,7 +225,7 @@ export function renderBoard(direction: SlideDirection = 'none'): void {
   }
 
   const s = stateAt(selected, guesses, answers);
-  const letters = gridLetters(puzzle);
+  const letters = puzzle ? gridLetters(puzzle) : Array(5).fill(Array(5).fill(""));
 
   const fillBoard = (targetBoard: HTMLElement) => {
     targetBoard.innerHTML = "";
@@ -247,13 +247,13 @@ export function renderBoard(direction: SlideDirection = 'none'): void {
     fillBoard(board1);
     board1.style.order = "1";
     board2.style.order = "2";
-    track.style.transition = "";
+    track.style.transition = "none";
     track.style.transform = "translateX(0)";
   } else if (direction === 'forward') {
     fillBoard(board2);
     board1.style.order = "1";
     board2.style.order = "2";
-    track.style.transition = "";
+    track.style.transition = "none";
     track.style.transform = "translateX(0)";
     void track.offsetHeight;
 
@@ -261,8 +261,11 @@ export function renderBoard(direction: SlideDirection = 'none'): void {
     track.style.transform = "translateX(-50%)";
 
     mainSlideTimeout = setTimeout(() => {
-      track.style.transition = "";
+      if (!board1.isConnected || !board2.isConnected || !track.isConnected) return;
+      track.style.transition = "none";
       board1.innerHTML = board2.innerHTML;
+      board1.style.order = "1";
+      board2.style.order = "2";
       track.style.transform = "translateX(0)";
       mainSlideTimeout = null;
     }, 250);
@@ -270,7 +273,7 @@ export function renderBoard(direction: SlideDirection = 'none'): void {
     fillBoard(board2);
     board2.style.order = "1";
     board1.style.order = "2";
-    track.style.transition = "";
+    track.style.transition = "none";
     track.style.transform = "translateX(-50%)";
     void track.offsetHeight;
 
@@ -278,7 +281,8 @@ export function renderBoard(direction: SlideDirection = 'none'): void {
     track.style.transform = "translateX(0)";
 
     mainSlideTimeout = setTimeout(() => {
-      track.style.transition = "";
+      if (!board1.isConnected || !board2.isConnected || !track.isConnected) return;
+      track.style.transition = "none";
       board1.innerHTML = board2.innerHTML;
       board1.style.order = "1";
       board2.style.order = "2";

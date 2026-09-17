@@ -43,7 +43,7 @@ export function renderDemoBoard(index: number, animate: boolean | SlideDirection
   if (demoSlideTimeout) {
     clearTimeout(demoSlideTimeout);
     demoSlideTimeout = null;
-    track.style.transition = "";
+    track.style.transition = "none";
     board1.innerHTML = board2.innerHTML;
     board1.style.order = "1";
     board2.style.order = "2";
@@ -76,13 +76,13 @@ export function renderDemoBoard(index: number, animate: boolean | SlideDirection
     fillBoard(board1);
     board1.style.order = "1";
     board2.style.order = "2";
-    track.style.transition = "";
+    track.style.transition = "none";
     track.style.transform = "translateX(0)";
   } else if (direction === 'forward') {
     fillBoard(board2);
     board1.style.order = "1";
     board2.style.order = "2";
-    track.style.transition = "";
+    track.style.transition = "none";
     track.style.transform = "translateX(0)";
     void track.offsetHeight;
 
@@ -90,8 +90,11 @@ export function renderDemoBoard(index: number, animate: boolean | SlideDirection
     track.style.transform = "translateX(-50%)";
 
     demoSlideTimeout = setTimeout(() => {
-      track.style.transition = "";
+      if (!board1.isConnected || !board2.isConnected || !track.isConnected) return;
+      track.style.transition = "none";
       board1.innerHTML = board2.innerHTML;
+      board1.style.order = "1";
+      board2.style.order = "2";
       track.style.transform = "translateX(0)";
       demoSlideTimeout = null;
     }, 250);
@@ -99,7 +102,7 @@ export function renderDemoBoard(index: number, animate: boolean | SlideDirection
     fillBoard(board2);
     board2.style.order = "1";
     board1.style.order = "2";
-    track.style.transition = "";
+    track.style.transition = "none";
     track.style.transform = "translateX(-50%)";
     void track.offsetHeight;
 
@@ -107,7 +110,8 @@ export function renderDemoBoard(index: number, animate: boolean | SlideDirection
     track.style.transform = "translateX(0)";
 
     demoSlideTimeout = setTimeout(() => {
-      track.style.transition = "";
+      if (!board1.isConnected || !board2.isConnected || !track.isConnected) return;
+      track.style.transition = "none";
       board1.innerHTML = board2.innerHTML;
       board1.style.order = "1";
       board2.style.order = "2";
