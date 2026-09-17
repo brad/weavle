@@ -20,4 +20,5 @@ export const KEY_ROWS: string[][] = [
   ["↵","Z","X","C","V","B","N","M","⌫"]
 ];
 
-export const EPOCH: Date = new Date(2026, 0, 1);
+export const EPOCH: Date = new Date(2026, 8, 17);
+
