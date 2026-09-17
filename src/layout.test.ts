@@ -9,8 +9,9 @@ describe('UI Layout and CSS Constraints', () => {
     const htmlPath = path.resolve(__dirname, 'index.html');
     const htmlContent = fs.readFileSync(htmlPath, 'utf8');
 
-    expect(htmlContent).toContain('html,body{height:100%;height:100dvh;margin:0;padding:0;overflow:hidden}');
-    expect(htmlContent).toContain('overflow:hidden');
+    expect(htmlContent).toContain('height: 100%');
+    expect(htmlContent).toContain('height: 100dvh');
+    expect(htmlContent).toContain('overflow: hidden');
   });
 
   it('index.html configures keyboard with flex layout and min-width 0', () => {

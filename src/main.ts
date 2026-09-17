@@ -1,3 +1,4 @@
+import { initDemo, startDemoLoop, stopDemoLoop } from './demo';
 import { Puzzle } from './types';
 import { PUZZLES, VALID, KEY_ROWS } from './data';
 import { dayNumber, stateAt, gridLetters, keyState, complete } from './game';
@@ -29,6 +30,7 @@ let selected = -1;
 let input = "";
 let over = false;
 let won = false;
+let currentBoardIndex = 1;
 
 function loadStats(): Stats {
   const stored = localStorage.getItem("weavle_stats");
@@ -170,6 +172,12 @@ function pickDaily(): void {
   const puzzleNumEl = document.getElementById("puzzleNumber");
   if (puzzleNumEl) puzzleNumEl.textContent = String(puzzleNumber);
 
+  const track = document.getElementById("boardTrack");
+  if (track) {
+    track.style.transform = "translateX(0)";
+  }
+  currentBoardIndex = 1;
+
   const saved = loadGameState();
   if (saved) {
     guesses = saved.guesses;
@@ -203,12 +211,18 @@ function pickDaily(): void {
   renderKeyboard();
 }
 
-function renderBoard(): void {
+function renderBoard(animateSlide = false): void {
   const s = stateAt(selected, guesses, answers);
   const letters = gridLetters(puzzle);
-  const b = document.getElementById("board");
-  if (!b) return;
-  b.innerHTML = "";
+
+  const nextBoardIndex = currentBoardIndex === 1 ? 2 : 1;
+  const currentBoard = document.getElementById("board" + currentBoardIndex);
+  const nextBoard = document.getElementById("board" + nextBoardIndex);
+  const track = document.getElementById("boardTrack");
+
+  if (!currentBoard || !nextBoard || !track) return;
+
+  nextBoard.innerHTML = "";
   for (let r = 0; r < 5; r++) {
     for (let c = 0; c < 5; c++) {
       const d = document.createElement("div");
@@ -218,8 +232,23 @@ function renderBoard(): void {
         d.className = "cell" + (s.green[r][c] ? " revealed" : s.yellow[r][c] ? " hint" : "");
         d.textContent = s.green[r][c] ? letters[r][c] : (s.yellow[r][c] || "");
       }
-      b.appendChild(d);
+      nextBoard.appendChild(d);
     }
+  }
+
+  if (animateSlide && selected > 0) {
+    const targetTransform = nextBoardIndex === 2 ? "translateX(-50%)" : "translateX(0)";
+
+    track.style.transition = "transform .25s ease-out";
+    track.style.transform = targetTransform;
+
+    setTimeout(() => {
+      track.style.transition = "";
+      currentBoardIndex = nextBoardIndex;
+    }, 250);
+  } else {
+    track.style.transform = nextBoardIndex === 1 ? "translateX(0)" : "translateX(-50%)";
+    currentBoardIndex = nextBoardIndex;
   }
 }
 
@@ -252,7 +281,7 @@ function renderTabs(): void {
     b.title = g.toUpperCase();
     b.onclick = () => {
       selected = i;
-      renderBoard();
+      renderBoard(true);
       renderTabs();
     };
     t.appendChild(b);
@@ -275,7 +304,7 @@ function renderKeyboard(): void {
     for (const c of row) {
       const b = document.createElement("button");
       b.className = "key" + (c === "↵" || c === "⌫" ? " wide" : "") + (s[c.toLowerCase()] ? " " + s[c.toLowerCase()] : "");
-      b.textContent = c === "↵" ? "Enter" : c === "⌫" ? "⌫" : c;
+      b.textContent = c === "↵" ? "ENTER" : c === "⌫" ? "⌫" : c;
       b.onclick = () => press(c);
       r.appendChild(b);
     }
@@ -320,7 +349,7 @@ function submit(): void {
   guesses.push(g);
   selected = guesses.length - 1;
   const s = stateAt(selected, guesses, answers);
-  renderBoard();
+  renderBoard(true);
   renderTabs();
   renderKeyboard();
 
@@ -409,10 +438,14 @@ function initUI(): void {
   const helpDismissed = localStorage.getItem("weavle_help_dismissed") === "true";
   if (!helpDismissed && help) {
     help.classList.add("show");
+    startDemoLoop();
   }
 
   const helpBtn = document.getElementById("helpBtn");
-  if (helpBtn) helpBtn.onclick = () => help?.classList.add("show");
+  if (helpBtn) helpBtn.onclick = () => {
+    help?.classList.add("show");
+    startDemoLoop();
+  };
 
   const statsBtn = document.getElementById("statsBtn");
   if (statsBtn) statsBtn.onclick = () => {
@@ -425,6 +458,7 @@ function initUI(): void {
     const hideHelp = (e?: Event) => {
       e?.preventDefault();
       help?.classList.remove("show");
+      stopDemoLoop();
       localStorage.setItem("weavle_help_dismissed", "true");
     };
     closeHelp.onclick = hideHelp;
@@ -462,6 +496,7 @@ function initUI(): void {
 
   document.onkeydown = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
+      if (help?.classList.contains("show")) stopDemoLoop();
       help?.classList.remove("show");
       results?.classList.remove("show");
       stats?.classList.remove("show");
@@ -472,6 +507,71 @@ function initUI(): void {
     }
   };
 
+  const boardWrapper = document.getElementById("boardWrapper");
+  if (boardWrapper) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    boardWrapper.addEventListener("touchstart", (e: TouchEvent) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    boardWrapper.addEventListener("touchend", (e: TouchEvent) => {
+      if (guesses.length < 2) return;
+      if (over) return;
+
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const dx = touchEndX - touchStartX;
+      const dy = touchEndY - touchStartY;
+
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+        if (dx > 0 && selected > 0) {
+          selected--;
+          renderBoard(true);
+          renderTabs();
+        } else if (dx < 0 && selected < guesses.length - 1) {
+          selected++;
+          renderBoard(true);
+          renderTabs();
+        }
+      }
+    }, { passive: true });
+  }
+
+  const demoBoardWrapper = document.getElementById("demoBoardWrapper");
+  if (demoBoardWrapper) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    demoBoardWrapper.addEventListener("touchstart", (e: TouchEvent) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    demoBoardWrapper.addEventListener("touchend", (e: TouchEvent) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const dx = touchEndX - touchStartX;
+      const dy = touchEndY - touchStartY;
+
+      const tab1 = document.getElementById("demoTab1");
+      const tab2 = document.getElementById("demoTab2");
+      const isTab1Active = tab1?.classList.contains("current");
+      const isTab2Active = tab2?.classList.contains("current");
+
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+        if (dx > 0 && !isTab1Active) {
+          tab1?.click();
+        } else if (dx < 0 && !isTab2Active) {
+          tab2?.click();
+        }
+      }
+    }, { passive: true });
+  }
+
+  initDemo();
   pickDaily();
 }
 
