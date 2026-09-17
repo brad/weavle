@@ -22,6 +22,8 @@ interface GameState {
   won: boolean;
 }
 
+export type SlideDirection = 'forward' | 'backward' | 'none';
+
 let puzzleNumber: number;
 let puzzle: Puzzle;
 let answers: string[];
@@ -30,7 +32,7 @@ let selected = -1;
 let input = "";
 let over = false;
 let won = false;
-let currentBoardIndex = 1;
+let mainSlideTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function loadStats(): Stats {
   const stored = localStorage.getItem("weavle_stats");
@@ -172,12 +174,6 @@ function pickDaily(): void {
   const puzzleNumEl = document.getElementById("puzzleNumber");
   if (puzzleNumEl) puzzleNumEl.textContent = String(puzzleNumber);
 
-  const track = document.getElementById("boardTrack");
-  if (track) {
-    track.style.transform = "translateX(0)";
-  }
-  currentBoardIndex = 1;
-
   const saved = loadGameState();
   if (saved) {
     guesses = saved.guesses;
@@ -205,50 +201,90 @@ function pickDaily(): void {
     message("Use the keyboard to enter a guess.");
   }
 
-  renderBoard();
+  renderBoard('none');
   renderTabs();
   renderTyped();
   renderKeyboard();
 }
 
-function renderBoard(animateSlide = false): void {
+export function renderBoard(direction: SlideDirection = 'none'): void {
+  const board1 = document.getElementById("board1");
+  const board2 = document.getElementById("board2");
+  const track = document.getElementById("boardTrack");
+
+  if (!board1 || !board2 || !track) return;
+
+  if (mainSlideTimeout) {
+    clearTimeout(mainSlideTimeout);
+    mainSlideTimeout = null;
+    track.style.transition = "";
+    board1.innerHTML = board2.innerHTML;
+    board1.style.order = "1";
+    board2.style.order = "2";
+    track.style.transform = "translateX(0)";
+  }
+
   const s = stateAt(selected, guesses, answers);
   const letters = gridLetters(puzzle);
 
-  const nextBoardIndex = currentBoardIndex === 1 ? 2 : 1;
-  const currentBoard = document.getElementById("board" + currentBoardIndex);
-  const nextBoard = document.getElementById("board" + nextBoardIndex);
-  const track = document.getElementById("boardTrack");
-
-  if (!currentBoard || !nextBoard || !track) return;
-
-  nextBoard.innerHTML = "";
-  for (let r = 0; r < 5; r++) {
-    for (let c = 0; c < 5; c++) {
-      const d = document.createElement("div");
-      if (!letters[r][c]) {
-        d.className = "cell gap";
-      } else {
-        d.className = "cell" + (s.green[r][c] ? " revealed" : s.yellow[r][c] ? " hint" : "");
-        d.textContent = s.green[r][c] ? letters[r][c] : (s.yellow[r][c] || "");
+  const fillBoard = (targetBoard: HTMLElement) => {
+    targetBoard.innerHTML = "";
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        const d = document.createElement("div");
+        if (!letters[r][c]) {
+          d.className = "cell gap";
+        } else {
+          d.className = "cell" + (s.green[r][c] ? " revealed" : s.yellow[r][c] ? " hint" : "");
+          d.textContent = s.green[r][c] ? letters[r][c] : (s.yellow[r][c] || "");
+        }
+        targetBoard.appendChild(d);
       }
-      nextBoard.appendChild(d);
     }
-  }
+  };
 
-  if (animateSlide && selected > 0) {
-    const targetTransform = nextBoardIndex === 2 ? "translateX(-50%)" : "translateX(0)";
+  if (direction === 'none') {
+    fillBoard(board1);
+    board1.style.order = "1";
+    board2.style.order = "2";
+    track.style.transition = "";
+    track.style.transform = "translateX(0)";
+  } else if (direction === 'forward') {
+    fillBoard(board2);
+    board1.style.order = "1";
+    board2.style.order = "2";
+    track.style.transition = "";
+    track.style.transform = "translateX(0)";
+    void track.offsetHeight;
 
     track.style.transition = "transform .25s ease-out";
-    track.style.transform = targetTransform;
+    track.style.transform = "translateX(-50%)";
 
-    setTimeout(() => {
+    mainSlideTimeout = setTimeout(() => {
       track.style.transition = "";
-      currentBoardIndex = nextBoardIndex;
+      board1.innerHTML = board2.innerHTML;
+      track.style.transform = "translateX(0)";
+      mainSlideTimeout = null;
     }, 250);
-  } else {
-    track.style.transform = nextBoardIndex === 1 ? "translateX(0)" : "translateX(-50%)";
-    currentBoardIndex = nextBoardIndex;
+  } else if (direction === 'backward') {
+    fillBoard(board2);
+    board2.style.order = "1";
+    board1.style.order = "2";
+    track.style.transition = "";
+    track.style.transform = "translateX(-50%)";
+    void track.offsetHeight;
+
+    track.style.transition = "transform .25s ease-out";
+    track.style.transform = "translateX(0)";
+
+    mainSlideTimeout = setTimeout(() => {
+      track.style.transition = "";
+      board1.innerHTML = board2.innerHTML;
+      board1.style.order = "1";
+      board2.style.order = "2";
+      track.style.transform = "translateX(0)";
+      mainSlideTimeout = null;
+    }, 250);
   }
 }
 
@@ -280,8 +316,10 @@ function renderTabs(): void {
     b.textContent = String(i + 1);
     b.title = g.toUpperCase();
     b.onclick = () => {
+      const prev = selected;
       selected = i;
-      renderBoard(true);
+      const direction: SlideDirection = selected > prev ? 'forward' : selected < prev ? 'backward' : 'none';
+      renderBoard(direction);
       renderTabs();
     };
     t.appendChild(b);
@@ -349,7 +387,7 @@ function submit(): void {
   guesses.push(g);
   selected = guesses.length - 1;
   const s = stateAt(selected, guesses, answers);
-  renderBoard(true);
+  renderBoard('forward');
   renderTabs();
   renderKeyboard();
 
@@ -421,7 +459,7 @@ function reset(): void {
   const guessCountEl = document.getElementById("guessCount");
   if (guessCountEl) guessCountEl.textContent = "0";
   message("Use the keyboard to enter a guess.");
-  renderBoard();
+  renderBoard('none');
   renderTabs();
   renderTyped();
   renderKeyboard();
@@ -519,7 +557,6 @@ function initUI(): void {
 
     boardWrapper.addEventListener("touchend", (e: TouchEvent) => {
       if (guesses.length < 2) return;
-      if (over) return;
 
       const touchEndX = e.changedTouches[0].clientX;
       const touchEndY = e.changedTouches[0].clientY;
@@ -529,11 +566,11 @@ function initUI(): void {
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
         if (dx > 0 && selected > 0) {
           selected--;
-          renderBoard(true);
+          renderBoard('backward');
           renderTabs();
         } else if (dx < 0 && selected < guesses.length - 1) {
           selected++;
-          renderBoard(true);
+          renderBoard('forward');
           renderTabs();
         }
       }

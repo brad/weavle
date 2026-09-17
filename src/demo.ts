@@ -9,60 +9,111 @@ const DEMO_PUZZLE: Puzzle = {
 const DEMO_ANSWERS = [...DEMO_PUZZLE.h, ...DEMO_PUZZLE.v];
 const DEMO_GUESSES = ["stare", "least"];
 
-let currentDemoBoardIndex = 1;
+let currentDemoIndex = 0;
+let demoSlideTimeout: ReturnType<typeof setTimeout> | null = null;
 let autoLoopTimer: ReturnType<typeof setTimeout> | null = null;
 let userInteracted = false;
 
-export function renderDemoBoard(index: number, animateSlide = false): void {
+export type SlideDirection = 'forward' | 'backward' | 'none';
+
+export function renderDemoBoard(index: number, animate: boolean | SlideDirection = 'none'): void {
   const tab1 = document.getElementById("demoTab1");
   const tab2 = document.getElementById("demoTab2");
   const timelineLabel = document.getElementById("demoTimelineLabel");
 
   if (!tab1 || !tab2 || !timelineLabel) return;
 
+  let direction: SlideDirection = 'none';
+  if (typeof animate === 'string') {
+    direction = animate;
+  } else if (animate) {
+    direction = index > currentDemoIndex ? 'forward' : index < currentDemoIndex ? 'backward' : 'none';
+  }
+  currentDemoIndex = index;
+
   const state = stateAt(index, DEMO_GUESSES, DEMO_ANSWERS);
   const letters = gridLetters(DEMO_PUZZLE);
 
-  const nextBoardIndex = currentDemoBoardIndex === 1 ? 2 : 1;
-  const currentBoard = document.getElementById("demoBoard" + currentDemoBoardIndex);
-  const nextBoard = document.getElementById("demoBoard" + nextBoardIndex);
+  const board1 = document.getElementById("demoBoard1");
+  const board2 = document.getElementById("demoBoard2");
   const track = document.getElementById("demoBoardTrack");
 
-  if (!currentBoard || !nextBoard || !track) return;
+  if (!board1 || !board2 || !track) return;
 
-  nextBoard.innerHTML = "";
-  for (let r = 0; r < 5; r++) {
-    for (let c = 0; c < 5; c++) {
-      const cell = document.createElement("div");
-      if (!letters[r][c]) {
-        cell.className = "cell gap";
-      } else {
-        const isGreen = state.green[r][c];
-        const hintChar = state.yellow[r][c];
-        cell.className = "cell" + (isGreen ? " revealed" : hintChar ? " hint" : "");
-        cell.textContent = isGreen ? letters[r][c] : (hintChar || "");
-      }
-      nextBoard.appendChild(cell);
-    }
+  if (demoSlideTimeout) {
+    clearTimeout(demoSlideTimeout);
+    demoSlideTimeout = null;
+    track.style.transition = "";
+    board1.innerHTML = board2.innerHTML;
+    board1.style.order = "1";
+    board2.style.order = "2";
+    track.style.transform = "translateX(0)";
   }
+
+  const fillBoard = (targetBoard: HTMLElement) => {
+    targetBoard.innerHTML = "";
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        const cell = document.createElement("div");
+        if (!letters[r][c]) {
+          cell.className = "cell gap";
+        } else {
+          const isGreen = state.green[r][c];
+          const hintChar = state.yellow[r][c];
+          cell.className = "cell" + (isGreen ? " revealed" : hintChar ? " hint" : "");
+          cell.textContent = isGreen ? letters[r][c] : (hintChar || "");
+        }
+        targetBoard.appendChild(cell);
+      }
+    }
+  };
 
   tab1.className = "guess-tab demo-tab" + (index === 0 ? " current" : "");
   tab2.className = "guess-tab demo-tab" + (index === 1 ? " current" : "");
   timelineLabel.textContent = "Showing board after guess " + (index + 1) + ": " + DEMO_GUESSES[index].toUpperCase();
 
-  if (animateSlide && index > 0) {
-    const targetTransform = nextBoardIndex === 2 ? "translateX(-50%)" : "translateX(0)";
+  if (direction === 'none') {
+    fillBoard(board1);
+    board1.style.order = "1";
+    board2.style.order = "2";
+    track.style.transition = "";
+    track.style.transform = "translateX(0)";
+  } else if (direction === 'forward') {
+    fillBoard(board2);
+    board1.style.order = "1";
+    board2.style.order = "2";
+    track.style.transition = "";
+    track.style.transform = "translateX(0)";
+    void track.offsetHeight;
 
     track.style.transition = "transform .25s ease-out";
-    track.style.transform = targetTransform;
+    track.style.transform = "translateX(-50%)";
 
-    setTimeout(() => {
+    demoSlideTimeout = setTimeout(() => {
       track.style.transition = "";
-      currentDemoBoardIndex = nextBoardIndex;
+      board1.innerHTML = board2.innerHTML;
+      track.style.transform = "translateX(0)";
+      demoSlideTimeout = null;
     }, 250);
-  } else {
-    track.style.transform = nextBoardIndex === 1 ? "translateX(0)" : "translateX(-50%)";
-    currentDemoBoardIndex = nextBoardIndex;
+  } else if (direction === 'backward') {
+    fillBoard(board2);
+    board2.style.order = "1";
+    board1.style.order = "2";
+    track.style.transition = "";
+    track.style.transform = "translateX(-50%)";
+    void track.offsetHeight;
+
+    track.style.transition = "transform .25s ease-out";
+    track.style.transform = "translateX(0)";
+
+    demoSlideTimeout = setTimeout(() => {
+      track.style.transition = "";
+      board1.innerHTML = board2.innerHTML;
+      board1.style.order = "1";
+      board2.style.order = "2";
+      track.style.transform = "translateX(0)";
+      demoSlideTimeout = null;
+    }, 250);
   }
 }
 
@@ -79,11 +130,15 @@ export function stopDemoLoop(): void {
 }
 
 export function resetDemoState(): void {
-  currentDemoBoardIndex = 1;
+  currentDemoIndex = 0;
   userInteracted = false;
   if (autoLoopTimer) {
     clearTimeout(autoLoopTimer);
     autoLoopTimer = null;
+  }
+  if (demoSlideTimeout) {
+    clearTimeout(demoSlideTimeout);
+    demoSlideTimeout = null;
   }
 }
 
@@ -91,7 +146,7 @@ function runLoopStep(): void {
   if (userInteracted) return;
 
   // Alternate between guess 1 (index 0) and guess 2 (index 1)
-  const nextIndex = currentDemoBoardIndex === 1 ? 1 : 0;
+  const nextIndex = currentDemoIndex === 0 ? 1 : 0;
   const targetTab = document.getElementById(nextIndex === 1 ? "demoTab2" : "demoTab1");
 
   if (targetTab) {
