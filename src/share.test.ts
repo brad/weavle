@@ -5,7 +5,8 @@ import { PUZZLES } from './data';
 
 describe('share formatting', () => {
   it('formats header correctly', () => {
-    expect(header(1, true, 4)).toBe('Weavle 1 4/10');
+    expect(header(1, true, 4)).toBe('Weavle 1 6/10');
+    expect(header(1, true, 10)).toBe('Weavle 1 0/10');
     expect(header(2, false, 10)).toBe('Weavle 2 X/10');
   });
 
